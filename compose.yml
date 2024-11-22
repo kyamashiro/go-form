@@ -1,0 +1,10 @@
+services:
+  go:
+    build:
+      context: .
+      dockerfile: ./Docker/Dockerfile
+    container_name: go
+    ports:
+      - "80:80"
+    volumes:
+      - ./:/app
