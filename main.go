@@ -1,6 +1,7 @@
 package main
 
 import (
+	"csv/controllers/signup"
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -14,19 +15,15 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	//r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-	//	w.Write([]byte("hello world"))
-	//	http.ServeFile(w, r, "templates/login.html")
-	//})
-
-	r.Get("/", Login)
+	r.Get("/", signup.Index)
+	//r.Post("/", SignUp)
 
 	err := http.ListenAndServe(":80", r)
 	catch(err)
 }
 
-func Login(w http.ResponseWriter, r *http.Request) {
-	t, _ := template.ParseFiles("templates/login.html")
+func SignIn(w http.ResponseWriter, r *http.Request) {
+	t, _ := template.ParseFiles("templates/sign_in.html")
 	err := t.Execute(w, nil)
 	catch(err)
 }
