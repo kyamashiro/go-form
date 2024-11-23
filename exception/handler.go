@@ -3,6 +3,7 @@ package exception
 import (
 	"fmt"
 	"html/template"
+	"log"
 	"net/http"
 )
 
@@ -16,7 +17,7 @@ type errorHandlerFunc struct{}
 
 func (ErrorHandler errorHandlerFunc) Report(w http.ResponseWriter, err error) {
 	if err != nil {
-		fmt.Println(err)
+		log.Printf("Error occurred: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		t, _ := template.ParseFiles("templates/500.html")
 		err := t.Execute(w, nil)

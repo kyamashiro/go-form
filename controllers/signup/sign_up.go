@@ -14,7 +14,7 @@ func Index(w http.ResponseWriter, r *http.Request) {
 }
 
 func Create(w http.ResponseWriter, r *http.Request) {
-	userName := r.FormValue("user-name")
+	userName := r.FormValue("userName")
 	password := r.FormValue("password")
 	fmt.Println(userName)
 	fmt.Println(password)

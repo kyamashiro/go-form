@@ -16,7 +16,7 @@ func main() {
 	r.Use(middleware.Recoverer)
 
 	r.Get("/", signup.Index)
-	//r.Post("/", SignUp)
+	r.Post("/sign-up", signup.Create)
 
 	err := http.ListenAndServe(":80", r)
 	catch(err)

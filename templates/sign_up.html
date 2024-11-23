@@ -5,14 +5,14 @@
     <title>sign-up</title>
 </head>
 <body>
-<form action="/">
-    <label for="user_name">
+<form action="/sign-up" method="post">
+    <label for="userName">
         ユーザー名：
-        <input id="user_name" type="text">
+        <input id="userName" name="userName" type="text">
     </label>
     <label for="password">
         パスワード：
-        <input id="password" type="password">
+        <input id="password" name="password" type="password">
     </label>
     <button>登録</button>
 </form>
