@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-func SignUp(w http.ResponseWriter, r *http.Request) {
+func SignUp(w http.ResponseWriter, _ *http.Request) {
 	t, _ := template.ParseFiles("templates/sign_up.html")
 	err := t.Execute(w, map[string]interface{}{
 		"csrfToken": "",
