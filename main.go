@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"go-form/controllers/signup"
-	"go-form/core/session"
 	"log"
 	"net/http"
 )
@@ -24,13 +23,13 @@ func GenerateCSRFToken() (string, error) {
 
 func main() {
 	// csrfTokenを生成
-	csrfToken, err := GenerateCSRFToken()
-	if err != nil {
-		fmt.Println("Error generating CSRF token:", err)
-		return
-	}
+	//csrfToken, err := GenerateCSRFToken()
+	//if err != nil {
+	//	fmt.Println("Error generating CSRF token:", err)
+	//	return
+	//}
 	// SessionにcsrfTokenを保存
-	session.Set("csrfToken", csrfToken)
+	//session.Set("csrfToken", csrfToken)
 
 	http.HandleFunc("/", signup.SignUp)
 

@@ -1,29 +1,29 @@
 services:
-  #  go:
-  #    build:
-  #      context: .
-  #      dockerfile: Docker/go/Dockerfile
-  #    container_name: go
-  #    ports:
-  #      - "80:80"
-  #    volumes:
-  #      - ./:/app
-  db:
+  go:
     build:
       context: .
-      dockerfile: Docker/postgresql/Dockerfile
+      dockerfile: Docker/go/Dockerfile
+    container_name: go
     ports:
-      - "5432:5432"
-    # set shared memory limit when using docker-compose
-    shm_size: 128mb
+      - "80:80"
     volumes:
-      - ./db/data:/var/lib/postgresql/data
-      - ./db/init:/docker-entrypoint-initdb.d
-    environment:
-      POSTGRES_USER: "postgres"
-      POSTGRES_PASSWORD: "postgres"
-      TZ: "Asia/Tokyo"
-      PGDATA: /var/lib/postgresql/data/pgdata
+      - ./:/app
+#  db:
+#    build:
+#      context: .
+#      dockerfile: Docker/postgresql/Dockerfile
+#    ports:
+#      - "5432:5432"
+#    # set shared memory limit when using docker-compose
+#    shm_size: 128mb
+#    volumes:
+#      - ./db/data:/var/lib/postgresql/data
+#      - ./db/init:/docker-entrypoint-initdb.d
+#    environment:
+#      POSTGRES_USER: "postgres"
+#      POSTGRES_PASSWORD: "postgres"
+#      TZ: "Asia/Tokyo"
+#      PGDATA: /var/lib/postgresql/data/pgdata
 
 #  adminer:
 #    image: adminer

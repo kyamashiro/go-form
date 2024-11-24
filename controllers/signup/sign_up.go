@@ -1,12 +1,17 @@
 package signup
 
 import (
+	"fmt"
+	"go-form/core/session"
 	"html/template"
 	"log/slog"
 	"net/http"
 )
 
-func SignUp(w http.ResponseWriter, _ *http.Request) {
+func SignUp(w http.ResponseWriter, r *http.Request) {
+	manager := session.NewManager()
+	s := manager.SessionStart(w, r)
+	fmt.Println(s)
 	t, _ := template.ParseFiles("templates/sign_up.html")
 	err := t.Execute(w, map[string]interface{}{
 		"csrfToken": "",
