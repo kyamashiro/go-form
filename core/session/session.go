@@ -20,14 +20,14 @@ const (
 )
 
 type Manager struct {
-	lock sync.Mutex
+	mu sync.RWMutex
 }
 
 type Session struct {
 	Values    map[string]interface{}
 	Id        string
 	ExpiresAt time.Time
-	lock      sync.Mutex
+	mu        sync.RWMutex
 }
 
 // 新しいセッションマネージャを生成
@@ -54,67 +54,52 @@ func filePath(sid string) string {
 
 // セッションの開始
 func (manager *Manager) SessionStart(w http.ResponseWriter, r *http.Request) (*Session, error) {
-	manager.lock.Lock()
-	defer manager.lock.Unlock()
-	fmt.Println("SessionStart")
+	manager.mu.Lock()
+	defer manager.mu.Unlock()
+
 	// クッキーからセッションIDを取得
 	cookie, err := r.Cookie(SId)
+	var sid string
+	if err == nil {
+		sid, _ = url.QueryUnescape(cookie.Value)
+		if session := manager.load(sid); session != nil && !session.isExpired() {
+			return session, nil
+		}
+	}
+
+	// 新規セッションを生成
+	newSid, err := generateId()
 	if err != nil {
-		println("cookie is nil")
-		// クッキーが存在しない場合は新規セッションを生成
-		sid, _ := generateId()
-		session := &Session{
-			Values:    make(map[string]interface{}),
-			Id:        sid,
-			ExpiresAt: time.Now().Add(time.Duration(MaxLifetime) * time.Second),
-		}
-		err := session.Save()
-		if err != nil {
-			return nil, err
-		}
-
-		http.SetCookie(w, &http.Cookie{
-			Name:     SId,
-			Value:    url.QueryEscape(sid),
-			Path:     "/",
-			HttpOnly: true,
-			MaxAge:   MaxLifetime,
-			SameSite: http.SameSiteStrictMode,
-		})
-
-		return session, nil
+		return nil, err
 	}
 
-	sid, _ := url.QueryUnescape(cookie.Value)
-	session := load(sid)
-	fmt.Println(session)
-	if session == nil || time.Now().After(session.ExpiresAt) {
-		println("session is nil")
-		// セッションが無効の場合、新しいセッションを生成
-		sid, _ = generateId()
-		session = &Session{
-			Values:    make(map[string]interface{}),
-			Id:        sid,
-			ExpiresAt: time.Now().Add(time.Duration(MaxLifetime) * time.Second),
-		}
-		err := session.Save()
-		if err != nil {
-			return nil, err
-		}
-		http.SetCookie(w, &http.Cookie{
-			Name:     SId,
-			Value:    url.QueryEscape(sid),
-			Path:     "/",
-			HttpOnly: true,
-			MaxAge:   MaxLifetime,
-			SameSite: http.SameSiteStrictMode,
-		})
+	session := &Session{
+		Values:    make(map[string]interface{}),
+		Id:        newSid,
+		ExpiresAt: time.Now().Add(time.Duration(MaxLifetime) * time.Second),
 	}
+
+	if err := session.Save(); err != nil {
+		return nil, err
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     SId,
+		Value:    url.QueryEscape(newSid),
+		Path:     "/",
+		HttpOnly: true,
+		MaxAge:   MaxLifetime,
+		SameSite: http.SameSiteStrictMode,
+	})
+
 	return session, nil
 }
 
 // セッションをロード
-func load(sid string) *Session {
+func (manager *Manager) load(sid string) *Session {
+	manager.mu.RLock()
+	defer manager.mu.RUnlock()
+	// ファイルから読み込み
 	filePath := filePath(sid)
 	data, err := os.ReadFile(filePath)
 	if err != nil {
@@ -130,18 +115,20 @@ func load(sid string) *Session {
 }
 
 // セッションの破棄
-func (manager *Manager) Destroy(w http.ResponseWriter, r *http.Request) {
+func (manager *Manager) Destroy(w http.ResponseWriter, r *http.Request) error {
 	cookie, err := r.Cookie(SId)
 	if err != nil || cookie.Value == "" {
-		return
+		return err
 	}
 
-	manager.lock.Lock()
-	defer manager.lock.Unlock()
-
 	sid, _ := url.QueryUnescape(cookie.Value)
-	filePath := filePath(sid)
-	os.Remove(filePath) // セッションファイルを削除
+
+	manager.mu.Lock()
+	defer manager.mu.Unlock()
+	err = os.Remove(filePath(sid))
+	if err != nil {
+		return err
+	}
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     SId,
@@ -149,19 +136,27 @@ func (manager *Manager) Destroy(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 		MaxAge:   -1,
 	})
+
+	return nil
 }
 
 // セッションの保存
 func (session *Session) Save() error {
 	data, err := json.Marshal(session)
-	fmt.Println("Saving session:", string(data))
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to marshal session: %w", err)
 	}
 
-	err = os.WriteFile(filepath.Join(Dir, session.Id), data, 0644)
+	session.mu.Lock()
+	defer session.mu.Unlock()
+	err = os.WriteFile(filePath(session.Id), data, 0644)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to write session to file: %w", err)
 	}
 	return nil
+}
+
+// セッションの有効期限をチェック
+func (session *Session) isExpired() bool {
+	return time.Now().After(session.ExpiresAt)
 }
