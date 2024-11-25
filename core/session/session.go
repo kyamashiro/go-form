@@ -23,36 +23,28 @@ type Manager struct {
 	lock sync.Mutex
 }
 
-type Func interface {
-	Set(key string, value interface{})
-	Get(key string) interface{}
-	Delete(key string)
-	Id() string
-}
-
 type Session struct {
 	Values    map[string]interface{}
-	Sid       string
+	Id        string
 	ExpiresAt time.Time
 	lock      sync.Mutex
 }
 
 // 新しいセッションマネージャを生成
-func NewManager() *Manager {
-	err := os.MkdirAll(Dir, 0755)
-	if err != nil {
-		return nil
+func NewManager() (*Manager, error) {
+	if err := os.MkdirAll(Dir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create session directory: %w", err)
 	}
-	return &Manager{}
+	return &Manager{}, nil
 }
 
 // セッションIDの生成
-func (manager *Manager) generateId() string {
+func generateId() (string, error) {
 	b := make([]byte, 32)
 	if _, err := rand.Read(b); err != nil {
-		return ""
+		return "", fmt.Errorf("failed to generate session ID: %w", err)
 	}
-	return base64.URLEncoding.EncodeToString(b)
+	return base64.URLEncoding.EncodeToString(b), nil
 }
 
 // ファイルパスを取得
@@ -61,7 +53,7 @@ func filePath(sid string) string {
 }
 
 // セッションの開始
-func (manager *Manager) SessionStart(w http.ResponseWriter, r *http.Request) Func {
+func (manager *Manager) SessionStart(w http.ResponseWriter, r *http.Request) (*Session, error) {
 	manager.lock.Lock()
 	defer manager.lock.Unlock()
 	fmt.Println("SessionStart")
@@ -70,13 +62,16 @@ func (manager *Manager) SessionStart(w http.ResponseWriter, r *http.Request) Fun
 	if err != nil {
 		println("cookie is nil")
 		// クッキーが存在しない場合は新規セッションを生成
-		sid := manager.generateId()
+		sid, _ := generateId()
 		session := &Session{
 			Values:    make(map[string]interface{}),
-			Sid:       sid,
+			Id:        sid,
 			ExpiresAt: time.Now().Add(time.Duration(MaxLifetime) * time.Second),
 		}
-		session.Save()
+		err := session.Save()
+		if err != nil {
+			return nil, err
+		}
 
 		http.SetCookie(w, &http.Cookie{
 			Name:     SId,
@@ -87,7 +82,7 @@ func (manager *Manager) SessionStart(w http.ResponseWriter, r *http.Request) Fun
 			SameSite: http.SameSiteStrictMode,
 		})
 
-		return session
+		return session, nil
 	}
 
 	sid, _ := url.QueryUnescape(cookie.Value)
@@ -96,13 +91,16 @@ func (manager *Manager) SessionStart(w http.ResponseWriter, r *http.Request) Fun
 	if session == nil || time.Now().After(session.ExpiresAt) {
 		println("session is nil")
 		// セッションが無効の場合、新しいセッションを生成
-		sid = manager.generateId()
+		sid, _ = generateId()
 		session = &Session{
 			Values:    make(map[string]interface{}),
-			Sid:       sid,
+			Id:        sid,
 			ExpiresAt: time.Now().Add(time.Duration(MaxLifetime) * time.Second),
 		}
-		session.Save()
+		err := session.Save()
+		if err != nil {
+			return nil, err
+		}
 		http.SetCookie(w, &http.Cookie{
 			Name:     SId,
 			Value:    url.QueryEscape(sid),
@@ -112,7 +110,7 @@ func (manager *Manager) SessionStart(w http.ResponseWriter, r *http.Request) Fun
 			SameSite: http.SameSiteStrictMode,
 		})
 	}
-	return session
+	return session, nil
 }
 
 // セッションをロード
@@ -154,51 +152,16 @@ func (manager *Manager) Destroy(w http.ResponseWriter, r *http.Request) {
 }
 
 // セッションの保存
-func (session *Session) Save() {
+func (session *Session) Save() error {
 	data, err := json.Marshal(session)
-	fmt.Println(session)
+	fmt.Println("Saving session:", string(data))
 	if err != nil {
-		panic(err)
+		return err
 	}
 
-	err = os.WriteFile(filepath.Join(Dir, session.Sid), data, 0644)
+	err = os.WriteFile(filepath.Join(Dir, session.Id), data, 0644)
 	if err != nil {
-		panic(err)
+		return err
 	}
-}
-
-// セッションデータのセット
-func (session *Session) Set(key string, value interface{}) {
-	session.lock.Lock()
-	defer session.lock.Unlock()
-
-	latest := load(session.Sid)
-	// 最新のセッションデータを取得
-	session.Values = latest.Values
-	session.Values[key] = value
-	session.Save()
-}
-
-// セッションデータの取得
-func (session *Session) Get(key string) interface{} {
-	session.lock.Lock()
-	defer session.lock.Unlock()
-
-	latest := load(session.Sid)
-
-	return latest.Values[key]
-}
-
-// セッションデータの削除
-func (session *Session) Delete(key string) {
-	session.lock.Lock()
-	defer session.lock.Unlock()
-
-	delete(session.Values, key)
-	session.Save()
-}
-
-// セッションIDを取得
-func (session *Session) Id() string {
-	return session.Sid
+	return nil
 }

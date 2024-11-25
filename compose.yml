@@ -2,16 +2,16 @@ services:
   go:
     build:
       context: .
-      dockerfile: Docker/go/Dockerfile
+      dockerfile: docker/go/Dockerfile
     container_name: go
     ports:
-      - "80:80"
+      - "8080:8080"
     volumes:
       - ./:/app
 #  db:
 #    build:
 #      context: .
-#      dockerfile: Docker/postgresql/Dockerfile
+#      dockerfile: docker/postgresql/Dockerfile
 #    ports:
 #      - "5432:5432"
 #    # set shared memory limit when using docker-compose
@@ -24,9 +24,3 @@ services:
 #      POSTGRES_PASSWORD: "postgres"
 #      TZ: "Asia/Tokyo"
 #      PGDATA: /var/lib/postgresql/data/pgdata
-
-#  adminer:
-#    image: adminer
-#    restart: always
-#    ports:
-#      - "8080:8080"

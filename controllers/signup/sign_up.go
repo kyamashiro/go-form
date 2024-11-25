@@ -1,7 +1,6 @@
 package signup
 
 import (
-	"fmt"
 	"go-form/core/session"
 	"html/template"
 	"log/slog"
@@ -9,9 +8,15 @@ import (
 )
 
 func SignUp(w http.ResponseWriter, r *http.Request) {
-	manager := session.NewManager()
-	s := manager.SessionStart(w, r)
-	fmt.Println(s)
+	manager, err := session.NewManager()
+	if err != nil {
+		slog.Error("Error occurred: %v", err)
+		http.Redirect(w, nil, "/500", http.StatusInternalServerError)
+	}
+	s, _ := manager.SessionStart(w, r)
+	s.Values["csrfToken"] = ""
+	s.Save()
+
 	t, _ := template.ParseFiles("templates/sign_up.html")
 	err := t.Execute(w, map[string]interface{}{
 		"csrfToken": "",
