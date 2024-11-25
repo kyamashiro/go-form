@@ -1,40 +1,19 @@
 package main
 
 import (
-	"crypto/rand"
-	"encoding/base64"
-	"fmt"
 	"go-form/controllers/signup"
 	"log"
 	"net/http"
 )
 
-func GenerateCSRFToken() (string, error) {
-	// Generate 32 random bytes
-	token := make([]byte, 32)
-	_, err := rand.Read(token)
-	if err != nil {
-		return "", fmt.Errorf("failed to generate random bytes: %w", err)
-	}
-
-	// Encode the token in a URL-safe base64 format
-	return base64.URLEncoding.EncodeToString(token), nil
-}
-
 func main() {
-	// csrfTokenを生成
-	//csrfToken, err := GenerateCSRFToken()
-	//if err != nil {
-	//	fmt.Println("Error generating CSRF token:", err)
-	//	return
-	//}
-	// SessionにcsrfTokenを保存
-	//session.Set("csrfToken", csrfToken)
-
+	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent) // 204で空レスポンスを返す
+	})
 	http.HandleFunc("/", signup.SignUp)
 
 	log.Println("Server starting on :8080...")
-	if err := http.ListenAndServe(":80", nil); err != nil {
+	if err := http.ListenAndServe(":8080", nil); err != nil {
 		log.Fatal(err)
 	}
 }

@@ -3,8 +3,8 @@ package session
 import (
 	"crypto/rand"
 	"encoding/base64"
-	"encoding/gob"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 	"os"
@@ -24,16 +24,16 @@ type Manager struct {
 }
 
 type Func interface {
-	Set(key, value interface{})
-	Get(key interface{}) interface{}
-	Delete(key interface{})
+	Set(key string, value interface{})
+	Get(key string) interface{}
+	Delete(key string)
 	Id() string
 }
 
 type Session struct {
-	values    map[interface{}]interface{}
-	sid       string
-	expiresAt time.Time
+	Values    map[string]interface{}
+	Sid       string
+	ExpiresAt time.Time
 	lock      sync.Mutex
 }
 
@@ -56,7 +56,7 @@ func (manager *Manager) generateId() string {
 }
 
 // ファイルパスを取得
-func (manager *Manager) filePath(sid string) string {
+func filePath(sid string) string {
 	return filepath.Join(Dir, sid)
 }
 
@@ -64,16 +64,17 @@ func (manager *Manager) filePath(sid string) string {
 func (manager *Manager) SessionStart(w http.ResponseWriter, r *http.Request) Func {
 	manager.lock.Lock()
 	defer manager.lock.Unlock()
-
+	fmt.Println("SessionStart")
 	// クッキーからセッションIDを取得
 	cookie, err := r.Cookie(SId)
-	if err != nil || cookie.Value == "" {
+	if err != nil {
+		println("cookie is nil")
 		// クッキーが存在しない場合は新規セッションを生成
 		sid := manager.generateId()
 		session := &Session{
-			values:    make(map[interface{}]interface{}),
-			sid:       sid,
-			expiresAt: time.Now().Add(time.Duration(MaxLifetime) * time.Second),
+			Values:    make(map[string]interface{}),
+			Sid:       sid,
+			ExpiresAt: time.Now().Add(time.Duration(MaxLifetime) * time.Second),
 		}
 		session.Save()
 
@@ -90,32 +91,40 @@ func (manager *Manager) SessionStart(w http.ResponseWriter, r *http.Request) Fun
 	}
 
 	sid, _ := url.QueryUnescape(cookie.Value)
-	session := manager.load(sid)
-	if session == nil || time.Now().After(session.expiresAt) {
+	session := load(sid)
+	fmt.Println(session)
+	if session == nil || time.Now().After(session.ExpiresAt) {
+		println("session is nil")
 		// セッションが無効の場合、新しいセッションを生成
 		sid = manager.generateId()
 		session = &Session{
-			values:    make(map[interface{}]interface{}),
-			sid:       sid,
-			expiresAt: time.Now().Add(time.Duration(MaxLifetime) * time.Second),
+			Values:    make(map[string]interface{}),
+			Sid:       sid,
+			ExpiresAt: time.Now().Add(time.Duration(MaxLifetime) * time.Second),
 		}
 		session.Save()
+		http.SetCookie(w, &http.Cookie{
+			Name:     SId,
+			Value:    url.QueryEscape(sid),
+			Path:     "/",
+			HttpOnly: true,
+			MaxAge:   MaxLifetime,
+			SameSite: http.SameSiteStrictMode,
+		})
 	}
 	return session
 }
 
 // セッションをロード
-func (manager *Manager) load(sid string) *Session {
-	filePath := manager.filePath(sid)
-	file, err := os.Open(filePath)
+func load(sid string) *Session {
+	filePath := filePath(sid)
+	data, err := os.ReadFile(filePath)
 	if err != nil {
-		return nil // ファイルが存在しない場合はnilを返す
+		return nil
 	}
-	defer file.Close()
 
 	session := &Session{}
-	decoder := gob.NewDecoder(file)
-	if err := decoder.Decode(session); err != nil {
+	if err := json.Unmarshal(data, session); err != nil {
 		return nil
 	}
 
@@ -133,7 +142,7 @@ func (manager *Manager) Destroy(w http.ResponseWriter, r *http.Request) {
 	defer manager.lock.Unlock()
 
 	sid, _ := url.QueryUnescape(cookie.Value)
-	filePath := manager.filePath(sid)
+	filePath := filePath(sid)
 	os.Remove(filePath) // セッションファイルを削除
 
 	http.SetCookie(w, &http.Cookie{
@@ -144,68 +153,52 @@ func (manager *Manager) Destroy(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func open(sid string) *Session {
-	filePath := filepath.Join(Dir, sid)
-	file, err := os.Open(filePath)
-	if err != nil {
-		return nil // ファイルが存在しない場合はnilを返す
-	}
-	defer file.Close()
-
-	session := &Session{}
-	decoder := gob.NewDecoder(file)
-	if err := decoder.Decode(session); err != nil {
-		return nil
-	}
-
-	return session
-}
-
 // セッションの保存
 func (session *Session) Save() {
 	data, err := json.Marshal(session)
+	fmt.Println(session)
 	if err != nil {
 		panic(err)
 	}
 
-	err = os.WriteFile(filepath.Join(Dir, session.sid), data, 0644)
+	err = os.WriteFile(filepath.Join(Dir, session.Sid), data, 0644)
 	if err != nil {
 		panic(err)
 	}
 }
 
 // セッションデータのセット
-func (session *Session) Set(key, value interface{}) {
+func (session *Session) Set(key string, value interface{}) {
 	session.lock.Lock()
 	defer session.lock.Unlock()
 
-	latest := open(session.sid)
+	latest := load(session.Sid)
 	// 最新のセッションデータを取得
-	session.values = latest.values
-	session.values[key] = value
+	session.Values = latest.Values
+	session.Values[key] = value
 	session.Save()
 }
 
 // セッションデータの取得
-func (session *Session) Get(key interface{}) interface{} {
+func (session *Session) Get(key string) interface{} {
 	session.lock.Lock()
 	defer session.lock.Unlock()
 
-	latest := open(session.sid)
+	latest := load(session.Sid)
 
-	return latest.values[key]
+	return latest.Values[key]
 }
 
 // セッションデータの削除
-func (session *Session) Delete(key interface{}) {
+func (session *Session) Delete(key string) {
 	session.lock.Lock()
 	defer session.lock.Unlock()
 
-	delete(session.values, key)
+	delete(session.Values, key)
 	session.Save()
 }
 
 // セッションIDを取得
 func (session *Session) Id() string {
-	return session.sid
+	return session.Sid
 }
