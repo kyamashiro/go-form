@@ -1,40 +1,67 @@
 package signup
 
 import (
+	"fmt"
 	"html/template"
 	"net/http"
 )
 
 func SignUp(w http.ResponseWriter, r *http.Request) {
+	errMsg := make(map[string][]string)
+	if r.Method == "POST" {
+		hasErr := false
+		userName := r.FormValue("userName")
+		password := r.FormValue("password")
+		fmt.Println(userName)
+		fmt.Println(password)
+		if userName == "" {
+			errMsg["userName"] = append(errMsg["userName"], "ユーザー名は必須です")
+			hasErr = true
+		}
+		if password == "" {
+			errMsg["password"] = append(errMsg["password"], "パスワードは必須です")
+			hasErr = true
+		}
+
+		if len(password) < 8 {
+			errMsg["password"] = append(errMsg["password"], "パスワードは8文字以上で入力してください")
+			hasErr = true
+		}
+
+		if hasErr {
+			fmt.Println(errMsg)
+			t, _ := template.ParseFiles("templates/sign_up.html")
+			err := t.Execute(w, map[string]interface{}{
+				"errMsg": errMsg,
+			})
+			if err != nil {
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				return
+			}
+			return
+		}
+		/**
+		* ここでユーザー登録処理を行う
+		1. ユーザー名とパスワードのバリデーション
+			1.1 バリデーションエラーの場合はエラーメッセージを表示
+				a. ユーザー名とパスワードが空でないか
+				b. パスワードが8文字以上か
+				c. ユーザー名が既に登録されていないか
+			1.2 バリデーションエラーがない場合は次の処理へ
+		2. ユーザー登録
+			2.1 パースワードをハッシュ化
+			2.2 ユーザー名とパスワードをDBに保存
+			2.3 認証処理を実行
+		3. ホーム画面にリダイレクト
+		**/
+	}
+
 	t, _ := template.ParseFiles("templates/sign_up.html")
 	err := t.Execute(w, map[string]interface{}{
 		"hoge": "",
 	})
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
 }
-
-//func Create(w http.ResponseWriter, r *http.Request) {
-//	userName := r.FormValue("userName")
-//	password := r.FormValue("password")
-//	fmt.Println(userName)
-//	fmt.Println(password)
-//	/**
-//	* ここでユーザー登録処理を行う
-//	1. ユーザー名とパスワードのバリデーション
-//		1.1 バリデーションエラーの場合はエラーメッセージを表示
-//			a. ユーザー名とパスワードが空でないか
-//			b. パスワードが8文字以上か
-//			c. ユーザー名が既に登録されていないか
-//		1.2 バリデーションエラーがない場合は次の処理へ
-//	2. ユーザー登録
-//		2.1 パースワードをハッシュ化
-//		2.2 ユーザー名とパスワードをDBに保存
-//		2.3 認証処理を実行
-//	3. ホーム画面にリダイレクト
-//	**/
-//	t, _ := template.ParseFiles("templates/sign_up.html")
-//	err := t.Execute(w, nil)
-//	exception.ErrorHandler.Report(w, err)
-//}

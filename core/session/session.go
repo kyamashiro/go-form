@@ -70,7 +70,6 @@ func (manager *Manager) SessionStart(w http.ResponseWriter, r *http.Request) (*S
 
 	// 新規セッションを生成
 	newSid, err := generateId()
-	fmt.Println(newSid)
 	if err != nil {
 		return nil, err
 	}

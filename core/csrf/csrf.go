@@ -41,14 +41,17 @@ func validate(r *http.Request, sessionToken string) error {
 // CSRFMiddleware https://blog.jxck.io/entries/2024-04-26/csrf.html
 func Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println("check")
 		manager, err := session.NewManager()
 		if err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
 		}
 
 		s, err := manager.SessionStart(w, r)
 		if err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
 		}
 
 		// CSRF トークンをセッションから取得、なければ生成
@@ -57,13 +60,15 @@ func Middleware(next http.Handler) http.Handler {
 			csrfToken, err = generate()
 			if err != nil {
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				return
 			}
 			s.Values[name] = csrfToken
 			if err := s.Save(); err != nil {
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				return
 			}
 		}
-
+		fmt.Println("check2")
 		// CSRF トークンをレスポンスでクッキーとして返す
 		http.SetCookie(w, &http.Cookie{
 			Name:     name,
