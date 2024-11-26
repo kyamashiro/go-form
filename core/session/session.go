@@ -54,21 +54,23 @@ func filePath(sid string) string {
 
 // セッションの開始
 func (manager *Manager) SessionStart(w http.ResponseWriter, r *http.Request) (*Session, error) {
-	manager.mu.Lock()
-	defer manager.mu.Unlock()
-
-	// クッキーからセッションIDを取得
 	cookie, err := r.Cookie(SId)
 	var sid string
 	if err == nil {
 		sid, _ = url.QueryUnescape(cookie.Value)
-		if session := manager.load(sid); session != nil && !session.isExpired() {
+		session, err := manager.load(sid)
+		if err != nil {
+			return nil, err
+		}
+
+		if session != nil && !session.isExpired() {
 			return session, nil
 		}
 	}
 
 	// 新規セッションを生成
 	newSid, err := generateId()
+	fmt.Println(newSid)
 	if err != nil {
 		return nil, err
 	}
@@ -96,22 +98,22 @@ func (manager *Manager) SessionStart(w http.ResponseWriter, r *http.Request) (*S
 }
 
 // セッションをロード
-func (manager *Manager) load(sid string) *Session {
+func (manager *Manager) load(sid string) (*Session, error) {
 	manager.mu.RLock()
 	defer manager.mu.RUnlock()
 	// ファイルから読み込み
 	filePath := filePath(sid)
 	data, err := os.ReadFile(filePath)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	session := &Session{}
 	if err := json.Unmarshal(data, session); err != nil {
-		return nil
+		return nil, err
 	}
 
-	return session
+	return session, nil
 }
 
 // セッションの破棄
