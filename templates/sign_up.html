@@ -6,15 +6,24 @@
 </head>
 <body>
 <form action="/sign-up" method="post">
-    <label for="userName">
-        ユーザー名：
-        <input id="userName" name="userName" type="text">
-    </label>
-    <label for="password">
-        パスワード：
-        <input id="password" name="password" type="password">
-    </label>
-    {{ .csrfField }}
+    <div>
+        <label for="userName">
+            ユーザー名：
+            <input id="userName" name="userName" type="text">
+        </label>
+        {{range $msg := .errMsg.userName}}
+        <p style="color: red">{{$msg}}</p>
+        {{end}}
+    </div>
+    <div>
+        <label for="password">
+            パスワード：
+            <input id="password" name="password" type="password">
+        </label>
+        {{range $msg := .errMsg.password}}
+        <p style="color: red">{{$msg}}</p>
+        {{end}}
+    </div>
     <button>登録</button>
 </form>
 </body>

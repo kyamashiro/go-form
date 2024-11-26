@@ -7,26 +7,8 @@ import (
 )
 
 func SignUp(w http.ResponseWriter, r *http.Request) {
-	errMsg := make(map[string][]string)
 	if r.Method == "POST" {
-		hasErr := false
-		userName := r.FormValue("userName")
-		password := r.FormValue("password")
-		fmt.Println(userName)
-		fmt.Println(password)
-		if userName == "" {
-			errMsg["userName"] = append(errMsg["userName"], "ユーザー名は必須です")
-			hasErr = true
-		}
-		if password == "" {
-			errMsg["password"] = append(errMsg["password"], "パスワードは必須です")
-			hasErr = true
-		}
-
-		if len(password) < 8 {
-			errMsg["password"] = append(errMsg["password"], "パスワードは8文字以上で入力してください")
-			hasErr = true
-		}
+		errMsg, hasErr := validate(r)
 
 		if hasErr {
 			fmt.Println(errMsg)
@@ -64,4 +46,25 @@ func SignUp(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
+}
+
+func validate(r *http.Request) (map[string][]string, bool) {
+	errMsg := make(map[string][]string)
+	hasErr := false
+	userName := r.FormValue("userName")
+	password := r.FormValue("password")
+	if userName == "" {
+		errMsg["userName"] = append(errMsg["userName"], "ユーザー名は必須です")
+		hasErr = true
+	}
+	if password == "" {
+		errMsg["password"] = append(errMsg["password"], "パスワードは必須です")
+		hasErr = true
+	}
+
+	if len(password) < 8 {
+		errMsg["password"] = append(errMsg["password"], "パスワードは8文字以上で入力してください")
+		hasErr = true
+	}
+	return errMsg, hasErr
 }

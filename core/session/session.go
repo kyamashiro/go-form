@@ -58,10 +58,7 @@ func (manager *Manager) SessionStart(w http.ResponseWriter, r *http.Request) (*S
 	var sid string
 	if err == nil {
 		sid, _ = url.QueryUnescape(cookie.Value)
-		session, err := manager.load(sid)
-		if err != nil {
-			return nil, err
-		}
+		session := manager.load(sid)
 
 		if session != nil && !session.isExpired() {
 			return session, nil
@@ -97,22 +94,22 @@ func (manager *Manager) SessionStart(w http.ResponseWriter, r *http.Request) (*S
 }
 
 // セッションをロード
-func (manager *Manager) load(sid string) (*Session, error) {
+func (manager *Manager) load(sid string) *Session {
 	manager.mu.RLock()
 	defer manager.mu.RUnlock()
 	// ファイルから読み込み
 	filePath := filePath(sid)
 	data, err := os.ReadFile(filePath)
 	if err != nil {
-		return nil, err
+		return nil
 	}
 
 	session := &Session{}
 	if err := json.Unmarshal(data, session); err != nil {
-		return nil, err
+		return nil
 	}
 
-	return session, nil
+	return session
 }
 
 // セッションの破棄
