@@ -7,14 +7,26 @@
 <body>
 <h1>Home</h1>
 {{if .user}}
-<p>ログイン中 {{.user.Name}}さん</p>
+<div style="display: flex;align-items: center">
+    <p>ログイン中 {{.user.Name}}さん</p>
+    <form action="/sign-out" method="post">
+        <button type="submit">ログアウト</button>
+    </form>
+</div>
 {{else}}
 <a href="/sign-in">ログイン</a>
 <a href="/sign-up">ユーザー登録</a>
 {{end}}
-
-<form action="/csv">
-    <button type="submit">CSVダウンロード</button>
-</form>
+<div style="padding: 8px 0">
+    <form action="/csv">
+        <button type="submit">CSVダウンロード</button>
+    </form>
+</div>
+<div style="padding: 8px 0">
+    <form action="/csv" method="post">
+        <input accept=".csv" name="csv" type="file">
+        <button type="submit">CSVアップロード</button>
+    </form>
+</div>
 </body>
 </html>
