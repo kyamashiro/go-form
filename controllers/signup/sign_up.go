@@ -3,6 +3,8 @@ package signup
 import (
 	"fmt"
 	"go-form/core/database"
+	"go-form/core/session"
+	"go-form/repo"
 	"html/template"
 	"net/http"
 )
@@ -26,13 +28,19 @@ import (
 */
 func SignUp(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
-		errMsg, hasErr := validate(r)
+		errMsg, hasErr, err := validate(r)
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
 
 		if hasErr {
-			fmt.Println(errMsg)
 			t, _ := template.ParseFiles("templates/sign_up.html")
+			fmt.Printf("%v", r.Form)
 			err := t.Execute(w, map[string]interface{}{
-				"errMsg": errMsg,
+				"errMsg":   errMsg,
+				"userName": r.FormValue("userName"),
+				"password": r.FormValue("password"),
 			})
 			if err != nil {
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -40,20 +48,41 @@ func SignUp(w http.ResponseWriter, r *http.Request) {
 			}
 			return
 		}
+		db := database.DB()
+		defer db.Close()
+		userRepo := repo.NewUserRepository(db)
+		// ユーザー登録
+		user, err := userRepo.Create(r.FormValue("userName"), r.FormValue("password"))
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		// 認証処理を実行してホーム画面にリダイレクト
+		manager, err := session.NewManager()
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		s, err := manager.SessionStart(w, r)
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		s.Values["user"] = user
 
+		http.Redirect(w, r, "/home", http.StatusSeeOther)
+		return
 	}
 
 	t, _ := template.ParseFiles("templates/sign_up.html")
-	err := t.Execute(w, map[string]interface{}{
-		"hoge": "",
-	})
+	err := t.Execute(w, nil)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 }
 
-func validate(r *http.Request) (map[string][]string, bool) {
+func validate(r *http.Request) (map[string][]string, bool, error) {
 	errMsg := make(map[string][]string)
 	hasErr := false
 	userName := r.FormValue("userName")
@@ -62,11 +91,11 @@ func validate(r *http.Request) (map[string][]string, bool) {
 		errMsg["userName"] = append(errMsg["userName"], "ユーザー名は必須です")
 		hasErr = true
 	}
+
 	if password == "" {
 		errMsg["password"] = append(errMsg["password"], "パスワードは必須です")
 		hasErr = true
 	}
-
 	if len(password) < 8 {
 		errMsg["password"] = append(errMsg["password"], "パスワードは8文字以上で入力してください")
 		hasErr = true
@@ -74,9 +103,16 @@ func validate(r *http.Request) (map[string][]string, bool) {
 
 	db := database.DB()
 	defer db.Close()
+	userRepo := repo.NewUserRepository(db)
+	exists, err := userRepo.Exists(userName)
+	if err != nil {
+		return errMsg, hasErr, err
+	}
 
-	row := db.QueryRow("SELECT * FROM users WHERE name = $1", userName)
-	fmt.Println(row.Scan())
+	if exists {
+		errMsg["userName"] = append(errMsg["userName"], "ユーザー名は既に登録されています")
+		hasErr = true
+	}
 
-	return errMsg, hasErr
+	return errMsg, hasErr, nil
 }

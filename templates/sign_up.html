@@ -9,7 +9,7 @@
     <div>
         <label for="userName">
             ユーザー名：
-            <input id="userName" name="userName" type="text">
+            <input id="userName" name="userName" type="text" value="{{ .userName }}">
         </label>
         {{range $msg := .errMsg.userName}}
         <p style="color: red">{{$msg}}</p>
@@ -18,7 +18,7 @@
     <div>
         <label for="password">
             パスワード：
-            <input id="password" name="password" type="password">
+            <input id="password" name="password" type="password" value="{{ .password }}">
         </label>
         {{range $msg := .errMsg.password}}
         <p style="color: red">{{$msg}}</p>
