@@ -72,3 +72,11 @@ func (u *UserRepository) FindByName(name string) *User {
 	}
 	return user
 }
+
+func (u *UserRepository) FindAll() (*sql.Rows, error) {
+	rows, err := u.db.Query("SELECT id, name, created_at FROM users")
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}

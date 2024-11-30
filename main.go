@@ -1,6 +1,7 @@
 package main
 
 import (
+	"go-form/controller/csv"
 	"go-form/controller/home"
 	"go-form/controller/signin"
 	"go-form/controller/signup"
@@ -18,6 +19,7 @@ func main() {
 	mux.HandleFunc("/", home.Home)
 	mux.HandleFunc("/sign-up", signup.SignUp)
 	mux.HandleFunc("/sign-in", signin.SignIn)
+	mux.HandleFunc("/csv", csv.Csv)
 
 	log.Println("Server starting on :8080...")
 	if err := http.ListenAndServe(":8080", csrf.Middleware(mux)); err != nil {

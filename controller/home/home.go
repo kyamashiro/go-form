@@ -7,6 +7,13 @@ import (
 )
 
 func Home(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	default:
+		get(w, r)
+	}
+}
+
+func get(w http.ResponseWriter, r *http.Request) {
 	manager, err := session.NewManager()
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
