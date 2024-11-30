@@ -2,10 +2,10 @@ services:
   go:
     build:
       context: .
-      dockerfile: docker/go/Dockerfile
+      dockerfile: build/go/Dockerfile
     container_name: go
     env_file:
-      - docker/go/.env
+      - .env
     ports:
       - "8080:8080"
     volumes:
@@ -14,14 +14,14 @@ services:
     container_name: postgres
     build:
       context: .
-      dockerfile: docker/postgresql/Dockerfile
+      dockerfile: build/postgresql/Dockerfile
     ports:
       - "5432:5432"
-    # set shared memory limit when using docker-compose
+    # set shared memory limit when using build-compose
     shm_size: 128mb
     volumes:
-      - ./docker/postgresql/data:/var/lib/postgresql/data
-      - ./docker/postgresql/init:/docker-entrypoint-initdb.d
+      - ./build/postgresql/data:/var/lib/postgresql/data
+      - ./build/postgresql/init:/build-entrypoint-initdb.d
     environment:
       POSTGRES_USER: "postgres"
       POSTGRES_PASSWORD: "postgres"
