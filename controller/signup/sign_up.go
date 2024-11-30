@@ -9,6 +9,24 @@ import (
 	"net/http"
 )
 
+func SignUp(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "POST":
+		post(w, r)
+	default:
+		get(w)
+	}
+}
+
+func get(w http.ResponseWriter) {
+	t, _ := template.ParseFiles("template/sign_up.html")
+	err := t.Execute(w, nil)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+}
+
 /*
 *
   - ここでユーザー登録処理を行う
@@ -26,65 +44,56 @@ import (
 
 *
 */
-func SignUp(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
-		errMsg, hasErr, err := validate(r)
-		if err != nil {
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-
-		if hasErr {
-			t, _ := template.ParseFiles("template/sign_up.html")
-			fmt.Printf("%v", r.Form)
-			err := t.Execute(w, map[string]interface{}{
-				"errMsg":   errMsg,
-				"userName": r.FormValue("userName"),
-				"password": r.FormValue("password"),
-			})
-			if err != nil {
-				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-				return
-			}
-			return
-		}
-		db := database.DB()
-		defer db.Close()
-		userRepo := repo.NewUserRepository(db)
-		// ユーザー登録
-		user, err := userRepo.Create(r.FormValue("userName"), r.FormValue("password"))
-		if err != nil {
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-		// 認証処理を実行してホーム画面にリダイレクト
-		manager, err := session.NewManager()
-		if err != nil {
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-		s, err := manager.SessionStart(w, r)
-		if err != nil {
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-		s.Values["user"] = user
-		err = s.Save()
-		if err != nil {
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-
-		http.Redirect(w, r, "/home", http.StatusSeeOther)
-		return
-	}
-
-	t, _ := template.ParseFiles("template/sign_up.html")
-	err := t.Execute(w, nil)
+func post(w http.ResponseWriter, r *http.Request) {
+	errMsg, hasErr, err := validate(r)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
+
+	if hasErr {
+		t, _ := template.ParseFiles("template/sign_up.html")
+		fmt.Printf("%v", r.Form)
+		err := t.Execute(w, map[string]interface{}{
+			"errMsg":   errMsg,
+			"userName": r.FormValue("userName"),
+			"password": r.FormValue("password"),
+		})
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		return
+	}
+	db := database.DB()
+	defer db.Close()
+	userRepo := repo.NewUserRepository(db)
+	// ユーザー登録
+	user, err := userRepo.Create(r.FormValue("userName"), r.FormValue("password"))
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	// 認証処理を実行してホーム画面にリダイレクト
+	manager, err := session.NewManager()
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	s, err := manager.SessionStart(w, r)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	s.Values["user"] = user
+	err = s.Save()
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/home", http.StatusSeeOther)
+	return
 }
 
 func validate(r *http.Request) (map[string][]string, bool, error) {

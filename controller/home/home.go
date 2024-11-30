@@ -1,7 +1,6 @@
 package home
 
 import (
-	"fmt"
 	"go-form/core/session"
 	"html/template"
 	"net/http"
@@ -19,7 +18,6 @@ func Home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	user := s.Values["user"]
-	fmt.Printf("%v", s.Values)
 	t, _ := template.ParseFiles("template/home.html")
 	err = t.Execute(w, map[string]interface{}{
 		"user": user,

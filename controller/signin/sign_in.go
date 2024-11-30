@@ -10,59 +10,84 @@ import (
 )
 
 func SignIn(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
-		errMsg, hasErr, err := validate(r)
-		if err != nil {
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-		if hasErr {
-			t, _ := template.ParseFiles("template/sign_in.html")
-			err := t.Execute(w, map[string]interface{}{
-				"errMsg":   errMsg,
-				"userName": r.FormValue("userName"),
-				"password": r.FormValue("password"),
-			})
-			if err != nil {
-				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-				return
-			}
-			return
-		}
-
-		// ログイン成功時の処理
-		manager, err := session.NewManager()
-		if err != nil {
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-		s, err := manager.SessionStart(w, r)
-		if err != nil {
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-
-		db := database.DB()
-		defer db.Close()
-		userRepo := repo.NewUserRepository(db)
-		user := userRepo.FindByName(r.FormValue("userName"))
-		fmt.Printf("check")
-		s.Values["user"] = user
-		err = s.Save()
-		if err != nil {
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-		http.Redirect(w, r, "/", http.StatusSeeOther)
-		return
+	switch r.Method {
+	case "POST":
+		post(w, r)
+	default:
+		get(w, r)
 	}
+}
 
-	t, _ := template.ParseFiles("template/sign_in.html")
-	err := t.Execute(w, nil)
+func get(w http.ResponseWriter, r *http.Request) {
+	manager, err := session.NewManager()
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
+	s, err := manager.SessionStart(w, r)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	// ログイン済みの場合はホーム画面にリダイレクト
+	if s.Values["user"] != nil {
+		http.Redirect(w, r, "/home", http.StatusSeeOther)
+		return
+	}
+
+	t, _ := template.ParseFiles("template/sign_in.html")
+	err = t.Execute(w, nil)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+}
+
+func post(w http.ResponseWriter, r *http.Request) {
+	errMsg, hasErr, err := validate(r)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if hasErr {
+		t, _ := template.ParseFiles("template/sign_in.html")
+		err := t.Execute(w, map[string]interface{}{
+			"errMsg":   errMsg,
+			"userName": r.FormValue("userName"),
+			"password": r.FormValue("password"),
+		})
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		return
+	}
+
+	// ログイン成功時の処理
+	manager, err := session.NewManager()
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	s, err := manager.SessionStart(w, r)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	db := database.DB()
+	defer db.Close()
+	userRepo := repo.NewUserRepository(db)
+	user := userRepo.FindByName(r.FormValue("userName"))
+	fmt.Printf("check")
+	s.Values["user"] = user
+	err = s.Save()
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+	return
 }
 
 func validate(r *http.Request) (map[string][]string, bool, error) {
