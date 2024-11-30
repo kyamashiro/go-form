@@ -1,19 +1,13 @@
 package main
 
 import (
-	"go-form/controllers/signup"
+	"go-form/controller/home"
+	"go-form/controller/signin"
+	"go-form/controller/signup"
 	"go-form/core/csrf"
 	"log"
 	"net/http"
 )
-
-type User struct {
-	id        string
-	name      string
-	password  string
-	createdAt string
-	updatedAt string
-}
 
 func main() {
 	mux := http.NewServeMux()
@@ -21,7 +15,9 @@ func main() {
 	mux.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNoContent) // 204で空レスポンスを返す
 	})
-	mux.HandleFunc("/", signup.SignUp)
+	mux.HandleFunc("/", home.Home)
+	mux.HandleFunc("/sign-up", signup.SignUp)
+	mux.HandleFunc("/sign-in", signin.SignIn)
 
 	log.Println("Server starting on :8080...")
 	if err := http.ListenAndServe(":8080", csrf.Middleware(mux)); err != nil {

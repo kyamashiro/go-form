@@ -35,7 +35,7 @@ func SignUp(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if hasErr {
-			t, _ := template.ParseFiles("templates/sign_up.html")
+			t, _ := template.ParseFiles("template/sign_up.html")
 			fmt.Printf("%v", r.Form)
 			err := t.Execute(w, map[string]interface{}{
 				"errMsg":   errMsg,
@@ -69,12 +69,17 @@ func SignUp(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		s.Values["user"] = user
+		err = s.Save()
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
 
 		http.Redirect(w, r, "/home", http.StatusSeeOther)
 		return
 	}
 
-	t, _ := template.ParseFiles("templates/sign_up.html")
+	t, _ := template.ParseFiles("template/sign_up.html")
 	err := t.Execute(w, nil)
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)

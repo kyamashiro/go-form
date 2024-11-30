@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>ログイン</title>
+</head>
+<body>
+<h2>ログイン</h2>
+<form action="/sign-in" method="post">
+    <div>
+        <label for="userName">
+            ユーザー名：
+            <input id="userName" name="userName" type="text" value="{{ .userName }}">
+        </label>
+        {{range $msg := .errMsg.userName}}
+        <p style="color: red">{{$msg}}</p>
+        {{end}}
+    </div>
+    <div>
+        <label for="password">
+            パスワード：
+            <input id="password" name="password" type="password" value="{{ .password }}">
+        </label>
+        {{range $msg := .errMsg.password}}
+        <p style="color: red">{{$msg}}</p>
+        {{end}}
+    </div>
+    <button>ログイン</button>
+</form>
+</body>
+</html>

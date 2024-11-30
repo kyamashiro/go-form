@@ -7,8 +7,8 @@ import (
 )
 
 type User struct {
-	id        string
-	name      string
+	Id        string
+	Name      string
 	password  string
 	createdAt string
 	updatedAt string
@@ -25,13 +25,13 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 func (u *UserRepository) Exists(name string) (bool, error) {
 	row := u.db.QueryRow("SELECT id FROM users WHERE name = $1", name)
 	user := &User{}
-	if err := row.Scan(&user.id); err != nil {
+	if err := row.Scan(&user.Id); err != nil {
 		if errors.Is(sql.ErrNoRows, err) {
 			return false, nil
 		}
 		return false, err
 	}
-	return user.id != "", nil
+	return user.Id != "", nil
 }
 
 func (u *UserRepository) Create(name, password string) (*User, error) {
@@ -45,9 +45,30 @@ func (u *UserRepository) Create(name, password string) (*User, error) {
 		return nil, err
 	}
 	user := &User{}
-	err = u.db.QueryRow("SELECT id,name FROM users WHERE name = $1", name).Scan(&user.id, &user.name)
+	err = u.db.QueryRow("SELECT id,name FROM users WHERE name = $1", name).Scan(&user.Id, &user.Name)
 	if err != nil {
 		return nil, err
 	}
 	return user, nil
+}
+
+func (u *UserRepository) Auth(name, password string) bool {
+	user := &User{}
+	err := u.db.QueryRow("SELECT id, name, password FROM users WHERE name = $1", name).Scan(&user.Id, &user.Name, &user.password)
+	if err != nil {
+		return false
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(user.password), []byte(password)); err != nil {
+		return false
+	}
+	return true
+}
+
+func (u *UserRepository) FindByName(name string) *User {
+	user := &User{}
+	err := u.db.QueryRow("SELECT id, name FROM users WHERE name = $1", name).Scan(&user.Id, &user.Name)
+	if err != nil {
+		return nil
+	}
+	return user
 }

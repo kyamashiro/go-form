@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Home</title>
+</head>
+<body>
+<h1>Home</h1>
+{{if .user}}
+<p>ログイン中 {{.user.Name}}さん</p>
+{{else}}
+<a href="/sign-in">ログイン</a>
+<a href="/sign-up">ユーザー登録</a>
+{{end}}
+</body>
+</html>
