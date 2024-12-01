@@ -8,8 +8,10 @@ import (
 
 func Home(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	default:
+	case http.MethodGet:
 		get(w, r)
+	default:
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 	}
 }
 

@@ -11,10 +11,12 @@ import (
 
 func SignUp(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case "POST":
+	case http.MethodPost:
 		post(w, r)
-	default:
+	case http.MethodGet:
 		get(w)
+	default:
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 	}
 }
 
