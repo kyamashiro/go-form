@@ -46,7 +46,7 @@ CREATE TABLE users
 
 CREATE TABLE weather_stations
 (
-    city        VARCHAR(255)     NOT NULL,
-    temperature DOUBLE PRECISION NOT NULL
+    city        VARCHAR(255)   NOT NULL,
+    temperature NUMERIC(10, 4) NOT NULL
 );
 

@@ -56,7 +56,12 @@ func post(w http.ResponseWriter, r *http.Request) {
 
 	// CSVリーダーを作成
 	reader := csv.NewReader(file)
-	isHeader := true // ヘッダー行をスキップするためのフラグ
+	reader.Comma = ';'             // 区切り文字を , から ; に変更
+	reader.Comment = '#'           // 先頭が # の場合はコメント行として扱う
+	reader.FieldsPerRecord = 2     // 各行のフィールド数。多くても少なくてもエラーになる
+	reader.LazyQuotes = true       // true の場合、"" が値の途中に "180"cm のようになっていてもエラーにならない
+	reader.TrimLeadingSpace = true // true の場合は、先頭の空白文字を無視する
+	reader.ReuseRecord = true      // true の場合は、Read で戻ってくるスライスを次回再利用する。パフォーマンスが上がる
 
 	db := database.DB()
 	defer db.Close()
@@ -74,16 +79,10 @@ func post(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// ヘッダー行をスキップ
-		if isHeader {
-			isHeader = false
-			continue
-		}
-
-		// データを検証
-		if len(record) < 3 {
+		// 不正な行はスキップ
+		if len(record) < 2 {
 			http.Error(w, "Invalid CSV format: insufficient columns", http.StatusBadRequest)
-			return
+			continue
 		}
 		var city string
 		var temperature float32

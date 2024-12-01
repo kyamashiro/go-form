@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"strings"
 )
 
 type WeatherStation struct {
@@ -22,21 +23,26 @@ func NewWeatherStationRepository(db *sql.DB) *WeatherStationRepository {
 func (w *WeatherStationRepository) BulkInsert(values []WeatherStation) error {
 	insert := "INSERT INTO weather_stations(city, temperature) VALUES "
 
-	vals := make([]any, 0, len(values))
+	placeholders := make([]string, 0, len(values))
+	vals := make([]any, 0, len(values)*2)
+
 	for i, k := range values {
-		insert += fmt.Sprintf(`(%v, ?),`, i)
-		vals = append(vals, k)
+		placeholders = append(placeholders, fmt.Sprintf("($%d, $%d)", i*2+1, i*2+2))
+		vals = append(vals, k.City, k.Temperature)
 	}
-	insert = insert[:len(insert)-1]
 
-	fmt.Println(insert)
+	// Join placeholders and finalize the query
+	insert += strings.Join(placeholders, ", ")
 
-	// prepareして実行
+	fmt.Println("Final Query: ", insert)
+
+	// Prepare and execute
 	stmt, err := w.db.Prepare(insert)
 	if err != nil {
 		log.Fatal("Prepare error: ", err)
 		return err
 	}
+	defer stmt.Close()
 
 	if _, err := stmt.Exec(vals...); err != nil {
 		log.Fatal("Exec error: ", err)

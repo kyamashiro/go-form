@@ -23,8 +23,8 @@
     </form>
 </div>
 <div style="padding: 8px 0">
-    <form action="/csv" method="post">
-        <input accept=".csv" name="csv" type="file">
+    <form action="/csv" enctype="multipart/form-data" method="post">
+        <input accept=".csv" name="csvfile" type="file">
         <button type="submit">CSVアップロード</button>
     </form>
 </div>
